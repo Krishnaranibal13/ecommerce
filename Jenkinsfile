@@ -11,6 +11,23 @@ pipeline {
             }
         }
 
+        stage('Prepare Environment') {
+            steps {
+                echo 'Copying production environment file...'
+
+                sh '''
+                    if [ ! -f /home/ubuntu/ecommerce/.env ]; then
+                        echo "ERROR: /home/ubuntu/ecommerce/.env not found"
+                        exit 1
+                    fi
+
+                    cp /home/ubuntu/ecommerce/.env .env
+
+                    echo ".env copied successfully"
+                '''
+            }
+        }
+
         stage('Build Docker Images') {
             steps {
                 echo 'Building Docker images...'
@@ -35,12 +52,17 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 echo 'Checking containers...'
-                sh 'docker compose ps'
 
-                echo 'Checking application through Nginx...'
                 sh '''
+                    docker compose ps
+
+                    echo "Waiting for application..."
                     sleep 10
+
+                    echo "Testing application..."
                     curl -f http://localhost/
+
+                    echo "Application is working!"
                 '''
             }
         }
@@ -50,14 +72,12 @@ pipeline {
         success {
             echo '======================================'
             echo 'Ecommerce deployment successful!'
-            echo 'Application is running on port 80.'
             echo '======================================'
         }
 
         failure {
             echo '======================================'
             echo 'Ecommerce deployment failed!'
-            echo 'Check Jenkins console output and container logs.'
             echo '======================================'
 
             sh '''
@@ -71,4 +91,6 @@ pipeline {
         }
     }
 }
+
+
 
